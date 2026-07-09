@@ -148,7 +148,7 @@ export default function StartupDetails() {
         {/* Navigation Breadcrumb */}
         <Link href="/directory" className="inline-flex items-center space-x-2 text-sm text-slate-400 hover:text-cyan-400 transition-colors mb-8">
           <ArrowLeft className="h-4 w-4" />
-          <span>Back to Startup Directory</span>
+          <span>Back to MSIC Directory</span>
         </Link>
 
         {/* Profile Header */}

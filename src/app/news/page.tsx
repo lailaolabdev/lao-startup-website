@@ -51,7 +51,7 @@ export default async function NewsPage() {
         newsItems={newsItems} 
         showAllButton={false} 
         title={lang === 'EN' ? 'All News & Topics' : 'ຂ່າວສານ & ຫົວຂໍ້ທັງໝົດ'} 
-        subtitle={lang === 'EN' ? 'Ecosystem updates, accelerator details, and investment news.' : 'ຂ່າວສານ ແລະ ຄວາມເຄື່ອນໄຫວທັງໝົດໃນວົງການສະຕາດອັບ.'} 
+        subtitle={lang === 'EN' ? 'MSIC updates, incubation program details, event news, and partner announcements.' : 'ຂ່າວສານຂອງ MSIC, ລາຍລະອຽດໂຄງການບົ່ມເພາະ, ກິດຈະກຳ ແລະ ຂ່າວຄູ່ຮ່ວມງານ.'} 
       />
     </div>
   );

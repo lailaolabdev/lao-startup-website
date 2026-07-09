@@ -272,7 +272,7 @@ export default function StartupPortal() {
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. LaoFresh Corporation"
+                        placeholder="e.g. MSIC Supported Enterprise"
                         className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-10 pr-4 py-3 text-sm focus:border-cyan-500 focus:outline-none"
                       />
                       <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-500" />
@@ -288,7 +288,7 @@ export default function StartupPortal() {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@laostartup.org"
+                      placeholder="name@msic.gov.la"
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 pl-10 pr-4 py-3 text-sm focus:border-cyan-500 focus:outline-none"
                     />
                     <User className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-slate-500" />
@@ -679,7 +679,7 @@ export default function StartupPortal() {
               </div>
             ) : inbox.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-800 p-12 text-center text-slate-500 text-sm">
-                You have not requested any meetings yet. Browse the Startup Directory to book.
+                You have not requested any meetings yet. Browse the MSIC Directory to book.
               </div>
             ) : (
               <div className="space-y-4">

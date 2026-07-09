@@ -33,13 +33,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Lao Startup Portal - Connecting Lao Startups with Global Investors',
+  title: 'MSIC - MSME and Startup Innovation Center',
   description:
-    'Discover, track, and connect with the most promising startups in Laos. Browse the Lao startup directory, see upcoming tech events, and match with venture capital partners.',
-  keywords: 'Lao Startup, Venture Capital Laos, Southeast Asia Startups, Lao PDR Tech Ecosystem, Tech Directory Laos',
+    'MSIC is the government business incubation center for MSMEs and startups under the Ministry of Industry and Commerce in Lao PDR.',
+  keywords: 'MSIC, MSME and Startup Innovation Center, Laos MSME, Lao Startup, business incubation, Ministry of Industry and Commerce',
   robots: 'index, follow',
   icons: {
-    icon: '/icon.png',
+    icon: '/msic-logo.jpg',
   },
 };
 

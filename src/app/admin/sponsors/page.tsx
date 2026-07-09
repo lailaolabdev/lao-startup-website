@@ -1,8 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Award, Image, Settings, RefreshCw, Sparkles, Building2 } from 'lucide-react';
-import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Award,
+  Building2,
+  CheckCircle2,
+  Edit3,
+  Image as ImageIcon,
+  Plus,
+  RefreshCw,
+  Save,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
+
+type SponsorTier = 'Diamond' | 'Gold' | 'Silver';
 
 interface EventItem {
   _id: string;
@@ -13,54 +26,93 @@ interface EventItem {
 interface SponsorItem {
   _id: string;
   name: string;
-  tier: 'Diamond' | 'Gold' | 'Silver';
+  tier: SponsorTier;
   logoUrl: string;
+  showOnHome?: boolean;
   eventId?: {
+    _id?: string;
     title: string;
     year: number;
   };
 }
 
-export default function AdminSponsors() {
-  const [adminToken, setAdminToken] = useState('');
-  
-  // Form fields
-  const [name, setName] = useState('');
-  const [tier, setTier] = useState<'Diamond' | 'Gold' | 'Silver'>('Diamond');
-  const [eventId, setEventId] = useState('');
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+interface SponsorForm {
+  name: string;
+  tier: SponsorTier;
+  eventId: string;
+  logoUrl: string;
+  showOnHome: boolean;
+}
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api';
+const API_ORIGIN = API_BASE.replace('/api', '');
+const TIERS: SponsorTier[] = ['Diamond', 'Gold', 'Silver'];
+
+const emptyForm: SponsorForm = {
+  name: '',
+  tier: 'Diamond',
+  eventId: '',
+  logoUrl: '',
+  showOnHome: true,
+};
+
+const resolveAssetUrl = (url?: string) => {
+  if (!url) return '';
+  return url.startsWith('/') ? `${API_ORIGIN}${url}` : url;
+};
+
+const tierStyle = (tier: SponsorTier) => {
+  if (tier === 'Diamond') return 'border-cyan-500/25 bg-cyan-500/10 text-cyan-300';
+  if (tier === 'Gold') return 'border-amber-500/25 bg-amber-500/10 text-amber-300';
+  return 'border-slate-700 bg-slate-800 text-slate-300';
+};
+
+export default function AdminSponsors() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [sponsors, setSponsors] = useState<SponsorItem[]>([]);
+  const [form, setForm] = useState<SponsorForm>(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const loadData = async () => {
+  const sortedSponsors = useMemo(() => {
+    const rank: Record<SponsorTier, number> = { Diamond: 0, Gold: 1, Silver: 2 };
+    return [...sponsors].sort((a, b) => rank[a.tier] - rank[b.tier] || a.name.localeCompare(b.name));
+  }, [sponsors]);
+
+  const loadData = useCallback(async (tokenValue = localStorage.getItem('admin_token') || '') => {
     setLoading(true);
+    setError('');
     try {
-      // Fetch events for select input
-      const evRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api'}/events`);
-      const evData = await evRes.json();
-      if (evData.success && evData.data) {
-        setEvents(evData.data);
-        if (evData.data.length > 0) {
-          setEventId(evData.data[0]._id);
-        }
+      const [eventsRes, sponsorsRes] = await Promise.all([
+        fetch(`${API_BASE}/events`),
+        fetch(`${API_BASE}/sponsors`, tokenValue ? { headers: { Authorization: `Bearer ${tokenValue}` } } : undefined),
+      ]);
+
+      const eventsData = await eventsRes.json();
+      if (eventsData.success) {
+        const nextEvents = eventsData.data || [];
+        setEvents(nextEvents);
+        setForm((prev) => ({
+          ...prev,
+          eventId: prev.eventId || nextEvents[0]?._id || '',
+        }));
       }
 
-      // Fetch sponsors
-      const spRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api'}/sponsors`);
-      const spData = await spRes.json();
-      if (spData.success) {
-        setSponsors(spData.data || []);
+      const sponsorsData = await sponsorsRes.json();
+      if (!sponsorsData.success) {
+        throw new Error(sponsorsData.message || sponsorsData.error || 'Failed to load sponsors');
       }
-    } catch (e) {
-      console.error('Error fetching data', e);
+      setSponsors(sponsorsData.data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load sponsor data');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
@@ -68,251 +120,368 @@ export default function AdminSponsors() {
       window.location.href = '/admin/login';
       return;
     }
-    setAdminToken(token);
-    loadData();
-  }, []);
+    const timeoutId = window.setTimeout(() => {
+      loadData(token);
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [loadData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const resetForm = () => {
+    setForm((prev) => ({ ...emptyForm, eventId: events[0]?._id || prev.eventId || '' }));
+    setEditingId(null);
+    setLogoFile(null);
+    setMessage('');
     setError('');
-    setSuccess('');
+    const fileInput = document.getElementById('sponsor-logo-file-input') as HTMLInputElement | null;
+    if (fileInput) fileInput.value = '';
+  };
 
-    if (!adminToken) {
-      setError('Admin Authentication Token is required.');
-      return;
-    }
+  const editSponsor = (sponsor: SponsorItem) => {
+    setEditingId(sponsor._id);
+    setMessage('');
+    setError('');
+    setLogoFile(null);
+    setForm({
+      name: sponsor.name || '',
+      tier: sponsor.tier || 'Diamond',
+      eventId: sponsor.eventId?._id || '',
+      logoUrl: sponsor.logoUrl || '',
+      showOnHome: sponsor.showOnHome ?? true,
+    });
+    const fileInput = document.getElementById('sponsor-logo-file-input') as HTMLInputElement | null;
+    if (fileInput) fileInput.value = '';
+  };
 
-    if (!logoFile) {
-      setError('Please select a sponsor logo image file to upload.');
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setError('');
+    setMessage('');
+
+    if (!logoFile && !form.logoUrl) {
+      setSaving(false);
+      setError('Please upload a sponsor logo or provide a logo URL.');
       return;
     }
 
     try {
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('tier', tier);
-      formData.append('eventId', eventId);
-      formData.append('logo', logoFile);
-
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api'}/sponsors`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-        },
-        body: formData, // FormData handles Content-Type boundaries
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setSuccess('New tiered sponsor has been added successfully!');
-        setName('');
-        setLogoFile(null);
-        // Clear file input manually
-        const fileInput = document.getElementById('logo-file-input') as HTMLInputElement;
-        if (fileInput) fileInput.value = '';
-        
-        loadData();
-      } else {
-        setError(data.message || 'Failed to create sponsor.');
+      const token = localStorage.getItem('admin_token') || '';
+      if (!token) {
+        window.location.href = '/admin/login';
+        return;
       }
+
+      const formData = new FormData();
+      formData.append('name', form.name);
+      formData.append('tier', form.tier);
+      formData.append('eventId', form.eventId);
+      formData.append('logoUrl', form.logoUrl);
+      formData.append('showOnHome', String(form.showOnHome));
+      if (logoFile) {
+        formData.append('logo', logoFile);
+      }
+
+      const endpoint = editingId ? `${API_BASE}/sponsors/${editingId}` : `${API_BASE}/sponsors`;
+      const res = await fetch(endpoint, {
+        method: editingId ? 'PUT' : 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || data.error || 'Failed to save sponsor');
+      }
+
+      setMessage(editingId ? 'Sponsor updated.' : 'Sponsor created.');
+      resetForm();
+      loadData();
     } catch (err) {
-      setError('Connection failed. Make sure the Express server is online.');
+      setError(err instanceof Error ? err.message : 'Failed to save sponsor');
+    } finally {
+      setSaving(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-950 px-4 pt-28 pb-12 sm:px-6 lg:px-8 text-white">
-      <div className="mx-auto max-w-5xl space-y-8">
-        {/* Navigation Breadcrumb */}
-        <Link href="/admin/dashboard" className="inline-flex items-center space-x-2 text-sm text-slate-400 hover:text-cyan-400 transition-colors">
-          <ArrowLeft className="h-4 w-4" />
-          <span>Back to Admin Dashboard</span>
-        </Link>
+  const deleteSponsor = async (sponsor: SponsorItem) => {
+    if (!confirm(`Delete ${sponsor.name}? This action cannot be undone.`)) return;
+    setError('');
+    setMessage('');
+    try {
+      const token = localStorage.getItem('admin_token') || '';
+      if (!token) {
+        window.location.href = '/admin/login';
+        return;
+      }
 
-        {/* Header */}
-        <div className="border-b border-slate-900 pb-6">
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center space-x-2.5">
-            <span>Manage Platform Sponsors</span>
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Link corporate partners to event timelines and tier their logo displays.
-          </p>
+      const res = await fetch(`${API_BASE}/sponsors/${sponsor._id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.message || data.error || 'Failed to delete sponsor');
+      }
+      setMessage('Sponsor deleted.');
+      if (editingId === sponsor._id) resetForm();
+      loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete sponsor');
+    }
+  };
+
+  const previewLogo = logoFile ? URL.createObjectURL(logoFile) : resolveAssetUrl(form.logoUrl);
+
+  return (
+    <div className="min-h-screen bg-slate-950 px-4 pt-28 pb-12 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <div className="flex flex-col gap-4 border-b border-slate-900 pb-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-950/30 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-300">
+              <Sparkles className="h-3.5 w-3.5" />
+              Sponsor CRUD
+            </div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-white">Sponsors</h1>
+            <p className="mt-1 text-sm text-slate-400">
+              Create, edit, upload logos, and remove sponsor partners shown on Home and Events.
+            </p>
+          </div>
+          <button
+            onClick={() => loadData()}
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-300 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
-        {/* Token Authentication gate */}
-        {!adminToken && (
-          <div className="max-w-md mx-auto rounded-3xl border border-slate-900 bg-slate-900/40 p-6 sm:p-8 backdrop-blur shadow-2xl">
-            <h2 className="text-lg font-bold text-white mb-4">Admin Authentication Required</h2>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                loadData();
-              }}
-              className="space-y-4"
-            >
+        {message && (
+          <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-xs font-semibold text-emerald-400">
+            <CheckCircle2 className="h-4 w-4" />
+            {message}
+          </div>
+        )}
+        {error && (
+          <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-xs font-semibold text-red-300">
+            <X className="h-4 w-4" />
+            {error}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_440px]">
+          <section className="overflow-hidden rounded-2xl border border-slate-900 bg-slate-900/10">
+            <div className="flex items-center justify-between border-b border-slate-900 p-5">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
-                  Admin Bearer Token
-                </label>
+                <h2 className="text-lg font-bold text-white">Active Sponsors</h2>
+                <p className="text-xs text-slate-500">Sorted by sponsorship tier.</p>
+              </div>
+              <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-bold text-slate-400">
+                {sortedSponsors.length} total
+              </span>
+            </div>
+
+            {loading ? (
+              <div className="flex h-64 items-center justify-center">
+                <RefreshCw className="h-7 w-7 animate-spin text-cyan-400" />
+              </div>
+            ) : sortedSponsors.length === 0 ? (
+              <div className="p-12 text-center text-sm text-slate-500">No sponsors registered.</div>
+            ) : (
+              <div className="divide-y divide-slate-900">
+                {sortedSponsors.map((sponsor) => (
+                  <div key={sponsor._id} className="grid gap-4 bg-slate-950/50 p-4 transition-colors hover:bg-slate-900/40 md:grid-cols-[72px_minmax(0,1fr)_150px]">
+                    <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl bg-white p-2">
+                      <img
+                        src={resolveAssetUrl(sponsor.logoUrl)}
+                        alt={`${sponsor.name} logo`}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate text-base font-bold text-white">{sponsor.name}</h3>
+                        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${tierStyle(sponsor.tier)}`}>
+                          {sponsor.tier}
+                        </span>
+                      </div>
+                      {sponsor.eventId && (
+                        <p className="mt-2 text-xs text-slate-500">
+                          Linked to {sponsor.eventId.title} ({sponsor.eventId.year})
+                        </p>
+                      )}
+                      {!sponsor.eventId && (
+                        <p className="mt-2 text-xs text-slate-500">Home page sponsor</p>
+                      )}
+                      {!sponsor.showOnHome && (
+                        <p className="mt-1 text-xs text-slate-500">Hidden from Home</p>
+                      )}
+                      <p className="mt-2 truncate text-[11px] text-slate-600">{sponsor.logoUrl}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 md:justify-end">
+                      <button
+                        type="button"
+                        onClick={() => editSponsor(sponsor)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-bold text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteSponsor(sponsor)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-300 transition-colors hover:bg-red-500/20"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-slate-900 bg-slate-900/10 p-5">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-white">{editingId ? 'Edit Sponsor' : 'Create Sponsor'}</h2>
+                <p className="text-xs text-slate-500">Logo uploads follow the same server upload flow as News.</p>
+              </div>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs font-bold text-slate-400 transition-colors hover:text-white"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">Sponsor Name</label>
                 <input
                   type="text"
                   required
-                  placeholder="Paste your admin JWT authorization token..."
-                  value={adminToken}
-                  onChange={(e) => setAdminToken(e.target.value)}
-                  className="w-full rounded-xl border border-slate-855 bg-slate-950 p-3 text-xs focus:border-cyan-500 focus:outline-none"
+                  value={form.name}
+                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                  placeholder="e.g. Unitel Telecom"
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm text-white outline-none transition-colors focus:border-cyan-500"
                 />
               </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">Tier</label>
+                  <select
+                    value={form.tier}
+                    onChange={(event) => setForm((prev) => ({ ...prev, tier: event.target.value as SponsorTier }))}
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 text-sm text-white outline-none transition-colors focus:border-cyan-500"
+                  >
+                    {TIERS.map((tier) => (
+                      <option key={tier} value={tier}>
+                        {tier}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">Event</label>
+                  <select
+                    value={form.eventId}
+                    onChange={(event) => setForm((prev) => ({ ...prev, eventId: event.target.value }))}
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-3 text-sm text-white outline-none transition-colors focus:border-cyan-500"
+                  >
+                    <option value="">Home page only</option>
+                    {events.length === 0 ? (
+                      <option value="" disabled>No events available</option>
+                    ) : (
+                      events.map((event) => (
+                        <option key={event._id} value={event._id}>
+                          {event.title} ({event.year})
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <label className="flex items-start gap-3 rounded-xl border border-slate-900 bg-slate-950/60 p-4 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={form.showOnHome}
+                  onChange={(event) => setForm((prev) => ({ ...prev, showOnHome: event.target.checked }))}
+                  className="mt-0.5 h-4 w-4 rounded border-slate-700 bg-slate-950 text-cyan-500"
+                />
+                <span>
+                  <span className="block font-bold text-white">Show on Home page</span>
+                  <span className="mt-1 block text-xs text-slate-500">Turn this off when the sponsor should appear only on a linked event page.</span>
+                </span>
+              </label>
+
+              <div>
+                <label className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase text-slate-400">
+                  <ImageIcon className="h-4 w-4 text-cyan-400" />
+                  Logo Upload
+                </label>
+                <input
+                  id="sponsor-logo-file-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => setLogoFile(event.target.files?.[0] || null)}
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-2.5 text-xs text-slate-400 outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-500/10 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-cyan-300"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-semibold uppercase text-slate-400">Logo URL</label>
+                <input
+                  type="text"
+                  value={form.logoUrl}
+                  onChange={(event) => setForm((prev) => ({ ...prev, logoUrl: event.target.value }))}
+                  placeholder="/uploads/logo.png or https://..."
+                  className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm text-white outline-none transition-colors focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="rounded-xl border border-slate-900 bg-slate-950/60 p-4">
+                <div className="mb-3 flex items-center gap-2 text-xs font-bold text-slate-400">
+                  <Award className="h-4 w-4 text-amber-300" />
+                  Logo Preview
+                </div>
+                {previewLogo ? (
+                  <div className="flex h-24 items-center justify-center rounded-xl bg-white p-4">
+                    <img src={previewLogo} alt="Sponsor preview" className="max-h-16 max-w-full object-contain" />
+                  </div>
+                ) : (
+                  <div className="flex h-24 items-center justify-center rounded-xl border border-dashed border-slate-800 text-xs text-slate-600">
+                    No logo selected
+                  </div>
+                )}
+              </div>
+
               <button
-                type="button"
-                onClick={() => setAdminToken('sandbox_token')}
-                className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3 text-xs font-bold text-white shadow-lg"
+                type="submit"
+                disabled={saving}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 text-xs font-bold text-white shadow-lg shadow-cyan-500/15 transition-all hover:from-cyan-400 hover:to-blue-500 disabled:opacity-60"
               >
-                Enter Sandbox Mode
+                {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {saving ? 'Saving...' : editingId ? 'Update Sponsor' : 'Create Sponsor'}
               </button>
             </form>
-          </div>
-        )}
 
-        {adminToken && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Sponsor Form */}
-            <div className="lg:col-span-2 rounded-3xl border border-slate-900 bg-slate-900/10 p-6 sm:p-8 space-y-6 h-fit">
-              <div>
-                <h2 className="text-lg font-bold text-white">Create New Sponsor</h2>
-                <p className="text-xs text-slate-505">Link partner logos with configured events.</p>
+            <div className="mt-5 rounded-xl border border-slate-900 bg-slate-950/50 p-4 text-xs leading-6 text-slate-500">
+              <div className="mb-1 flex items-center gap-2 font-bold text-slate-400">
+                <Building2 className="h-4 w-4" />
+                Display rules
               </div>
-
-              {success && (
-                <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs text-emerald-400">
-                  {success}
-                </div>
-              )}
-              {error && (
-                <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-4 text-xs text-red-400">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Sponsor Brand Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Unitel Telecom"
-                      className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm focus:border-cyan-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Sponsorship Tier</label>
-                    <select
-                      value={tier}
-                      onChange={(e) => setTier(e.target.value as 'Diamond' | 'Gold' | 'Silver')}
-                      className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm focus:border-cyan-500 focus:outline-none"
-                    >
-                      <option value="Diamond">Diamond (Primary Display)</option>
-                      <option value="Gold">Gold (Secondary Display)</option>
-                      <option value="Silver">Silver (Standard Display)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Assign to Event</label>
-                    <select
-                      value={eventId}
-                      onChange={(e) => setEventId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm focus:border-cyan-500 focus:outline-none text-slate-300"
-                    >
-                      {events.length === 0 ? (
-                        <option value="">No events found. Create an event first.</option>
-                      ) : (
-                        events.map((ev) => (
-                          <option key={ev._id} value={ev._id}>
-                            {ev.title} ({ev.year})
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 uppercase mb-1 flex items-center space-x-1.5">
-                      <Image className="h-4 w-4 text-cyan-400" />
-                      <span>Logo File (S3 Upload)</span>
-                    </label>
-                    <input
-                      id="logo-file-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setLogoFile(e.target.files ? e.target.files[0] : null)}
-                      className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-xs text-slate-450 focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 text-xs font-bold text-white shadow-lg"
-                >
-                  Register Sponsor
-                </button>
-              </form>
+              Home page sponsors are controlled by the checkbox above. Diamond logos appear first, then Gold, then Silver. Event pages still group linked sponsors by tier.
             </div>
-
-            {/* Current Sponsors list */}
-            <div className="rounded-3xl border border-slate-900 bg-slate-900/10 p-6 space-y-4 h-fit">
-              <div>
-                <h2 className="text-lg font-bold text-white">Active Partners</h2>
-                <p className="text-xs text-slate-500">Tiered list of active brand sponsors.</p>
-              </div>
-
-              {loading ? (
-                <div className="flex justify-center py-6">
-                  <RefreshCw className="h-5 w-5 animate-spin text-cyan-400" />
-                </div>
-              ) : sponsors.length === 0 ? (
-                <div className="text-center text-slate-600 text-xs py-6">
-                  No sponsors registered.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {sponsors.map((sp) => (
-                    <div
-                      key={sp._id}
-                      className="rounded-2xl border border-slate-900 bg-slate-950/60 p-4 space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-white text-xs flex items-center space-x-1.5">
-                          <Building2 className="h-3.5 w-3.5 text-cyan-400" />
-                          <span>{sp.name}</span>
-                        </span>
-                        <span className={`rounded px-1.5 py-0.5 text-[8px] font-bold border ${
-                          sp.tier === 'Diamond'
-                            ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
-                            : sp.tier === 'Gold'
-                            ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-                            : 'bg-slate-500/10 border-slate-500/20 text-slate-400'
-                        }`}>
-                          {sp.tier}
-                        </span>
-                      </div>
-                      {sp.eventId && (
-                        <span className="block text-[9px] text-slate-500">
-                          Linked: {sp.eventId.title} ({sp.eventId.year})
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          </section>
+        </div>
       </div>
     </div>
   );

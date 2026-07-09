@@ -89,7 +89,7 @@ export default function AdminLogin() {
                   <input
                     type="email"
                     required
-                    placeholder="admin@laostartup.com"
+                    placeholder="admin@msic.gov.la"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-xl border border-slate-800 bg-slate-950/80 pl-10 pr-4 py-3 text-sm focus:border-cyan-500 focus:outline-none"

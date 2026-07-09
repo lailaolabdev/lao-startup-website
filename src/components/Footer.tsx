@@ -1,10 +1,18 @@
-import Link from 'next/link';
-import { cookies } from 'next/headers';
-import { Rocket, Mail, Globe, MapPin } from 'lucide-react';
+'use client';
 
-export default async function Footer() {
-  const cookieStore = await cookies();
-  const lang = (cookieStore.get('lang')?.value as 'EN' | 'LA') || 'EN';
+import Link from 'next/link';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+import { Mail, Globe, MapPin } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
+
+export default function Footer() {
+  const pathname = usePathname();
+  const { language: lang } = useLanguage();
+
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
 
   return (
     <footer className="mt-auto border-t border-slate-900 bg-slate-950 py-12 text-slate-400">
@@ -13,17 +21,21 @@ export default async function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600">
-                <Rocket className="h-4.5 w-4.5 text-white" />
+              <div className="relative h-9 w-9 overflow-hidden rounded-lg bg-white ring-1 ring-white/15">
+                <Image
+                  src="/msic-logo.jpg"
+                  alt="MSIC logo"
+                  fill
+                  sizes="36px"
+                  className="object-contain p-1"
+                />
               </div>
-              <span className="text-md font-bold text-white tracking-tight">
-                Lao<span className="text-cyan-400">Startup</span>
-              </span>
+              <span className="text-md font-bold text-white tracking-tight">MSIC</span>
             </Link>
             <p className="text-sm text-slate-500">
               {lang === 'EN' 
-                ? 'The premier portal connecting visionary Lao startups with international opportunities and global investors.' 
-                : 'ແພລດຟອມຊັ້ນນໍາໃນການເຊື່ອມຕໍ່ສະຕາດອັບລາວທີ່ມີວິໄສທັດ ກັບໂອກາດສາກົນ ແລະ ນັກລົງທຶນທົ່ວໂລກ.'}
+                ? 'Government business incubation center for MSMEs and startups under the Ministry of Industry and Commerce.' 
+                : 'ສູນບົ່ມເພາະທຸລະກິດຂອງລັດຖະບານ ສຳລັບ ຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບ ພາຍໃຕ້ກະຊວງອຸດສາຫະກຳ ແລະ ການຄ້າ.'}
             </p>
           </div>
 
@@ -35,17 +47,17 @@ export default async function Footer() {
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/directory" className="hover:text-cyan-400 transition-colors">
-                  {lang === 'EN' ? 'Startup Directory' : 'ລາຍຊື່ສະຕາດອັບ'}
+                  {lang === 'EN' ? 'MSME & Startup Directory' : 'ລາຍຊື່ ຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບ'}
                 </Link>
               </li>
               <li>
                 <Link href="/events" className="hover:text-cyan-400 transition-colors">
-                  {lang === 'EN' ? 'Platform Events' : 'ກິດຈະກຳແພລດຟອມ'}
+                  {lang === 'EN' ? 'MSIC Events' : 'ກິດຈະກຳ MSIC'}
                 </Link>
               </li>
               <li>
                 <Link href="/portal/startup" className="hover:text-cyan-400 transition-colors">
-                  {lang === 'EN' ? 'Startup Portal' : 'ພອດທໍສະຕາດອັບ'}
+                  {lang === 'EN' ? 'Applicant Portal' : 'ພອດທໍຜູ້ສະໝັກ'}
                 </Link>
               </li>
             </ul>
@@ -86,18 +98,18 @@ export default async function Footer() {
             </p>
             <p className="flex items-center space-x-2 text-slate-500">
               <Mail className="h-4 w-4 text-cyan-400" />
-              <span>info@laostartup.org</span>
+              <span>info@msic.gov.la</span>
             </p>
             <p className="flex items-center space-x-2 text-slate-500">
               <Globe className="h-4 w-4 text-cyan-400" />
-              <span>www.laostartup.org</span>
+              <span>www.msic.gov.la</span>
             </p>
           </div>
         </div>
 
         <div className="mt-12 pt-8 border-t border-slate-900 flex flex-col md:flex-row items-center justify-between text-xs text-slate-600">
           <p>
-            &copy; {new Date().getFullYear()} {lang === 'EN' ? 'Lao Startup Portal. All rights reserved.' : 'ພອດທໍສະຕາດອັບລາວ. ສະຫງວນລິຂະສິດ.'}
+            &copy; {new Date().getFullYear()} {lang === 'EN' ? 'MSIC. All rights reserved.' : 'MSIC. ສະຫງວນລິຂະສິດ.'}
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <span className="hover:text-slate-400 cursor-pointer">

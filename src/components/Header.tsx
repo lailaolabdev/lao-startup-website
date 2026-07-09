@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Globe, Menu, X, Rocket } from 'lucide-react';
+import { Globe, Menu, X } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function Header() {
@@ -11,9 +12,13 @@ export default function Header() {
   const { language: lang, toggleLanguage: toggleLang } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
 
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
+
   const navItems = [
     { name: lang === 'EN' ? 'Home' : 'ໜ້າຫຼັກ', href: '/' },
-    { name: lang === 'EN' ? 'Directory' : 'ສະຕາດອັບ', href: '/directory' },
+    { name: lang === 'EN' ? 'MSME & Startups' : 'ຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບ', href: '/directory' },
     { name: lang === 'EN' ? 'Events' : 'ກິດຈະກຳ', href: '/events' },
     { name: lang === 'EN' ? 'News' : 'ຂ່າວສານ', href: '/news' },
   ];
@@ -24,12 +29,17 @@ export default function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20 transition-transform group-hover:scale-105">
-              <Rocket className="h-5 w-5 text-white" />
+            <div className="relative h-10 w-10 overflow-hidden rounded-lg bg-white ring-1 ring-white/15 transition-transform group-hover:scale-105">
+              <Image
+                src="/msic-logo.jpg"
+                alt="MSIC logo"
+                fill
+                sizes="40px"
+                className="object-contain p-1"
+                priority
+              />
             </div>
-            <span className="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-              Lao<span className="text-cyan-400">Startup</span>
-            </span>
+            <span className="text-lg font-bold tracking-tight text-white">MSIC</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -53,7 +63,7 @@ export default function Header() {
           </nav>
 
           {/* Language Toggle & User actions */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
             <button
               onClick={toggleLang}
               className="flex items-center space-x-1.5 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-300 transition-all hover:bg-slate-800 hover:text-white"
@@ -64,9 +74,15 @@ export default function Header() {
 
             <Link
               href="/portal/startup"
+              className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-bold text-slate-200 transition-all hover:bg-slate-800 hover:text-white"
+            >
+              {lang === 'EN' ? 'login' : 'ເຂົ້າສູ່ລະບົບ'}
+            </Link>
+            <Link
+              href="/admin/login"
               className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-400 hover:to-blue-500 hover:shadow-cyan-500/30"
             >
-              {lang === 'EN' ? 'Join Ecosystem' : 'ເຂົ້າຮ່ວມລະບົບ'}
+              {lang === 'EN' ? 'Admin Login' : 'ເຂົ້າສູ່ລະບົບ Admin'}
             </Link>
           </div>
 
@@ -112,9 +128,16 @@ export default function Header() {
             <Link
               href="/portal/startup"
               onClick={() => setIsOpen(false)}
-              className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/20"
+              className="block w-full text-center rounded-lg border border-slate-700 bg-slate-900 py-3 text-sm font-bold text-slate-200"
             >
-              {lang === 'EN' ? 'Join Ecosystem' : 'ເຂົ້າຮ່ວມລະບົບ'}
+              {lang === 'EN' ? 'login' : 'ເຂົ້າສູ່ລະບົບ'}
+            </Link>
+            <Link
+              href="/admin/login"
+              onClick={() => setIsOpen(false)}
+              className="mt-3 block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/20"
+            >
+              {lang === 'EN' ? 'Admin Login' : 'ເຂົ້າສູ່ລະບົບ Admin'}
             </Link>
           </div>
         </div>

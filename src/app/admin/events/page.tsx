@@ -205,7 +205,7 @@ export default function AdminEvents() {
                       required
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="e.g. Lao Tech Summit"
+                      placeholder="e.g. MSIC Innovation Forum"
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm focus:border-cyan-500 focus:outline-none"
                     />
                   </div>

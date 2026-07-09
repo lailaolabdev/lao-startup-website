@@ -32,15 +32,15 @@ interface EventItem {
 const MOCK_EVENTS: EventItem[] = [
   {
     id: 'ev-01',
-    title: 'Lao Tech Startup Summit 2026',
+    title: 'MSIC Innovation Forum 2026',
     year: 2026,
-    description: 'The largest annual gathering of tech founders, investors, and policymakers in Vientiane. Discussing artificial intelligence, digital wallets, cross-border logistics, and capital access in landlinked Laos.',
+    description: 'MSIC annual gathering for MSMEs, startups, investors, and policymakers in Vientiane. Discussing business incubation, digital tools, market access, and capital readiness in Lao PDR.',
     date: '2026-11-14T09:00:00Z',
     location: 'Lao National Convention Center, Vientiane',
     agenda: [
-      { time: '09:00 - 09:30', topic: 'Opening Keynote: Laos Digital Economy Blueprint', speaker: 'Minister of Technology and Communications' },
+      { time: '09:00 - 09:30', topic: 'Opening Keynote: MSME and Startup Innovation in Lao PDR', speaker: 'Ministry of Industry and Commerce' },
       { time: '09:30 - 10:30', topic: 'Panel: Venture Capital Landscape in Southeast Asia', speaker: 'VCs from Singapore, Thailand, and Laos' },
-      { time: '10:45 - 12:00', topic: 'Lao Startup Pitch Showcase (Top 10 Finalists)', speaker: 'Selected Founders' },
+      { time: '10:45 - 12:00', topic: 'MSIC Pitch Showcase (Top 10 Finalists)', speaker: 'Selected Founders' },
     ],
     sponsors: [
       { id: 'sp-1', name: 'Unitel', tier: 'Diamond', logoUrl: '/sponsors/unitel.png' },
@@ -201,12 +201,12 @@ export default function EventsHub() {
             <span>{lang === 'EN' ? 'Platform Timeline & Calendar' : 'ແຜນງານ ແລະ ຕາຕະລາງກິດຈະກຳ'}</span>
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-            {lang === 'EN' ? 'Ecosystem Events Hub' : 'ສູນລວມກິດຈະກຳລະບົບນິເວດ'}
+            {lang === 'EN' ? 'MSIC Events Hub' : 'ສູນລວມກິດຈະກຳ MSIC'}
           </h1>
           <p className="mt-3 text-slate-400 max-w-2xl mx-auto text-sm leading-relaxed">
             {lang === 'EN' 
-              ? 'Attend matchmaking forums, accelerator demo days, and policy dialogues hosted by the Lao Startup ecosystem.'
-              : 'ເຂົ້າຮ່ວມກອງປະຊຸມຈັບຄູ່ທຸລະກິດ, ວັນນຳສະເໜີຜົນງານຂອງສະຕາດອັບ, ແລະ ເວທີສົນທະນານະໂຍບາຍຕ່າງໆ.'}
+              ? 'Attend MSIC incubation events, Lao Startup activities, business matching forums, demo days, and policy dialogues.'
+              : 'ເຂົ້າຮ່ວມກິດຈະກຳບົ່ມເພາະຂອງ MSIC, ກິດຈະກຳ Lao Startup, ການຈັບຄູ່ທຸລະກິດ, ວັນນຳສະເໜີຜົນງານ ແລະ ເວທີສົນທະນານະໂຍບາຍ.'}
           </p>
 
           {/* Year selector buttons */}

@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MSIC Website
 
-## Getting Started
+Next.js frontend for MSIC, the MSME and Startup Innovation Center. It provides the public website, MSME/startup directory, event/news pages, applicant portal, and admin screens that call the Express API.
 
-First, run the development server:
+## Stack
+
+- Next.js 16.2.9 App Router
+- React 19.2.4
+- Tailwind CSS 4
+- TypeScript
+- `lucide-react` icons
+- `recharts` for dashboard charts
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The frontend expects the backend at `http://localhost:8002/api` unless `NEXT_PUBLIC_API_URL` is set.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Optional `.env.local`:
 
-## Learn More
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8002/api
+NEXT_PUBLIC_GA_MEASUREMENT_ID=
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | Purpose |
+| --- | --- |
+| `pnpm dev` | Start local Next.js dev server |
+| `pnpm build` | Build production app |
+| `pnpm start` | Start production server after build |
+| `pnpm lint` | Run ESLint |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## App Structure
 
-## Deploy on Vercel
+```text
+src/app/                  # App Router pages and layouts
+src/components/           # Shared Header, Footer, analytics, news UI
+src/context/              # Language provider and hook
+public/fonts/             # Local Noto Sans fonts
+public/video/             # Landing page video asset
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Main Routes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Route | Purpose |
+| --- | --- |
+| `/` | Public landing page |
+| `/directory` | MSIC MSME/startup directory with search, filter, pagination, and mock fallback |
+| `/directory/[id]` | Participant detail and partner matchmaking request |
+| `/events` | Event listing, sponsor display, and registration |
+| `/news` | News listing |
+| `/portal/startup` | Applicant/partner login, registration, participant profile, matchmaking inbox |
+| `/admin/login` | Admin login |
+| `/admin/dashboard` | Admin dashboard |
+| `/admin/events` | Admin event creation |
+| `/admin/news` | Admin news CRUD with image upload |
+| `/admin/sponsors` | Admin sponsor CRUD with logo upload and Home page visibility |
+| `/admin/startups` | Admin startup company CRUD for the public directory, including logo and traction metrics |
+| `/admin/verifications` | Admin startup approval UI |
+
+Note: the startup detail folder is currently named `src/app/directory/%5Bid%5D`. If `/directory/:id` should behave as a dynamic route, rename that folder to `[id]`.
+
+## API Integration
+
+Use:
+
+```ts
+process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api'
+```
+
+Current API areas:
+
+- Auth: `/auth/register`, `/auth/login`
+- Startups: `/startups`, `/startups/profile/me`, `/startups/:id/verify`
+- Events: `/events`, `/events/:id/register`
+- Sponsors: `/sponsors` and Home placement filter `/sponsors?placement=home`
+- News: `/news`
+- Matchmaking: `/matchmaking/request`, `/matchmaking/inbox`, `/matchmaking/:id`
+
+Admin pages store the admin token in `localStorage` under `admin_token`.
+
+For upload requests, use `FormData` and let the browser set the request boundary.
+
+## Language
+
+The app supports English and Lao through `src/context/LanguageContext.tsx`.
+
+- Valid language values are `EN` and `LA`.
+- The selected language is stored in the `lang` cookie.
+- `RootLayout` reads the cookie and initializes `LanguageProvider`.
+- Keep bilingual UI text in sync when changing pages that already support both languages.
+
+## Verify
+
+```bash
+pnpm lint
+pnpm build
+```

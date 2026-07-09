@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   CheckCircle,
   FileText,
+  Building2,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -75,10 +76,10 @@ export default function AdminDashboard() {
   }
 
   const statCards = [
-    { label: 'Weekly Platform Views', value: '14,700', change: '+24%', icon: Eye, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { label: 'Active Founders', value: '75', change: '+8%', icon: Users, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { label: 'Verified Investors', value: '18', change: '+12%', icon: ShieldCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: 'Matchmaking Sessions', value: '42', change: '+18%', icon: Calendar, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { label: 'Weekly MSIC Views', value: '14,700', change: '+24%', icon: Eye, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+    { label: 'Active MSME Founders', value: '75', change: '+8%', icon: Users, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: 'Verified Partners', value: '18', change: '+12%', icon: ShieldCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { label: 'Business Matching Sessions', value: '42', change: '+18%', icon: Calendar, color: 'text-amber-400', bg: 'bg-amber-500/10' },
   ];
 
   return (
@@ -91,7 +92,7 @@ export default function AdminDashboard() {
               Admin Backoffice
             </h1>
             <p className="mt-1 text-sm text-slate-400">
-              Overviewing system traffic, platform sign-ups, and ecosystem traction indicators.
+              Overviewing MSIC traffic, applicant sign-ups, and incubation program indicators.
             </p>
           </div>
           {/* Sub Navigation */}
@@ -99,6 +100,12 @@ export default function AdminDashboard() {
             <span className="rounded-lg bg-slate-900 border border-slate-800 px-4 py-2.5 text-xs font-semibold text-cyan-400">
               Dashboard
             </span>
+            <a
+              href="/admin/startups"
+              className="rounded-lg border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+            >
+              Startup CRUD
+            </a>
             <a
               href="/admin/verifications"
               className="rounded-lg border border-slate-800 bg-slate-950/60 px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
@@ -166,7 +173,7 @@ export default function AdminDashboard() {
           {/* Traffic Area Chart */}
           <div className="lg:col-span-2 rounded-3xl border border-slate-900 bg-slate-900/10 p-6 space-y-6">
             <div>
-              <h2 className="text-lg font-bold text-white">Weekly Platform Activity</h2>
+              <h2 className="text-lg font-bold text-white">Weekly MSIC Activity</h2>
               <p className="text-xs text-slate-500">Visualizing unique visitors and visitor actions over the last 7 days.</p>
             </div>
             <div className="h-80 w-full">
@@ -192,10 +199,10 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Startup Categories Distribution Chart */}
+          {/* Participant Categories Distribution Chart */}
           <div className="rounded-3xl border border-slate-900 bg-slate-900/10 p-6 flex flex-col justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white">Startup Verticals</h2>
+              <h2 className="text-lg font-bold text-white">Participant Verticals</h2>
               <p className="text-xs text-slate-500">Breakdown of registered business entities by sector.</p>
             </div>
             <div className="h-60 w-full relative flex items-center justify-center">
@@ -232,17 +239,39 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        <div className="rounded-3xl border border-cyan-500/10 bg-cyan-950/10 p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-cyan-500/10 p-3">
+                <Building2 className="h-5 w-5 text-cyan-300" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Startup Company CRUD</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Manage company profiles used by the public MSIC directory.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/admin/startups"
+              className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/20"
+            >
+              Manage Startups
+            </a>
+          </div>
+        </div>
+
         {/* Audit Log / Platform Highlights */}
         <div className="rounded-3xl border border-slate-900 bg-slate-900/10 p-6 space-y-4">
           <div>
             <h2 className="text-lg font-bold text-white">System Logs</h2>
-            <p className="text-xs text-slate-500">Security audits and platform registrations log feed.</p>
+            <p className="text-xs text-slate-500">Security audits and MSIC registration log feed.</p>
           </div>
           <div className="space-y-3">
             {[
-              { time: '10 mins ago', desc: 'New Investor registration request received from Singapore Angel Fund.', icon: ShieldCheck, color: 'text-purple-400' },
-              { time: '1 hour ago', desc: 'Startup pitch deck upload successful for "LaoFresh" corporation.', icon: FileText, color: 'text-cyan-400' },
-              { time: '4 hours ago', desc: 'Matchmaking session approved between SBC Group and PDR Pay.', icon: CheckCircle, color: 'text-emerald-400' },
+              { time: '10 mins ago', desc: 'New partner registration request received from Singapore Angel Fund.', icon: ShieldCheck, color: 'text-purple-400' },
+              { time: '1 hour ago', desc: 'MSIC participant pitch deck upload successful for "LaoFresh".', icon: FileText, color: 'text-cyan-400' },
+              { time: '4 hours ago', desc: 'Business matching session approved between SBC Group and PDR Pay.', icon: CheckCircle, color: 'text-emerald-400' },
             ].map((log, idx) => {
               const Icon = log.icon;
               return (

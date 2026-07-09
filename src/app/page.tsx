@@ -1,47 +1,95 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { ArrowRight, TrendingUp, Users, DollarSign, Award, Target, CheckCircle2, Newspaper } from 'lucide-react';
+import { ArrowRight, TrendingUp, Users, DollarSign, Award, Target, CheckCircle2, Handshake, Sparkles } from 'lucide-react';
 import NewsSection from '@/components/NewsSection';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api';
+const API_ORIGIN = API_BASE.replace('/api', '');
+
+const resolveAssetUrl = (url?: string) => {
+  if (!url) return '';
+  return url.startsWith('/') ? `${API_ORIGIN}${url}` : url;
+};
+
+const money = (value?: number) => `$${Number(value || 0).toLocaleString()}`;
+
+const GRADIENTS = [
+  'from-emerald-400 to-teal-500',
+  'from-blue-400 to-indigo-500',
+  'from-orange-400 to-rose-500',
+  'from-purple-400 to-pink-500',
+  'from-cyan-400 to-sky-600',
+];
+
+interface HomeStartup {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  logoUrl?: string;
+  logoGradient: string;
+  tractionMetrics?: {
+    revenue?: number;
+    teamSize?: number;
+    fundingRaised?: number;
+    customers?: number;
+  };
+}
+
+interface HomeSponsor {
+  id: string;
+  name: string;
+  tier: 'Diamond' | 'Gold' | 'Silver';
+  logoUrl: string;
+  eventTitle?: string;
+  eventYear?: number;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T[];
+}
+
+interface ApiNewsItem {
+  _id: string;
+  title?: string;
+  category?: string;
+  date?: string;
+  summary?: string;
+  readTime?: string;
+  images?: string[];
+  content?: string;
+}
+
+interface ApiStartupItem {
+  _id: string;
+  name: string;
+  category: string;
+  description: string;
+  logoUrl?: string;
+  tractionMetrics?: HomeStartup['tractionMetrics'];
+}
+
+interface ApiSponsorItem {
+  _id: string;
+  name: string;
+  tier: HomeSponsor['tier'];
+  logoUrl: string;
+  eventId?: {
+    title?: string;
+    year?: number;
+  };
+}
 
 export default async function Home() {
   const cookieStore = await cookies();
   const lang = (cookieStore.get('lang')?.value as 'EN' | 'LA') || 'EN';
-  // Mock Featured Startups
-  const featuredStartups = [
-    {
-      id: 'st-01',
-      name: 'LaoFresh',
-      category: 'AgriTech',
-      description: 'Revolutionizing farm-to-table logistics in Vientiane through supply chain automation.',
-      stats: '2.4x YoY Growth',
-      funding: '$250K Seed',
-      logoGradient: 'from-emerald-400 to-teal-500',
-    },
-    {
-      id: 'st-02',
-      name: 'PDR Pay',
-      category: 'FinTech',
-      description: 'Modern digital wallet and micro-lending API tailored for Lao merchants and SMEs.',
-      stats: '150K+ Monthly Active Users',
-      funding: '$1.2M Pre-Series A',
-      logoGradient: 'from-blue-400 to-indigo-500',
-    },
-    {
-      id: 'st-03',
-      name: 'Sokxay Express',
-      category: 'Logistics',
-      description: 'On-demand parcel delivery network covering all 17 provinces with real-time tracking.',
-      stats: '1M+ Parcels Delivered',
-      funding: '$800K Venture Debt',
-      logoGradient: 'from-orange-400 to-rose-500',
-    },
-  ];
 
   const stats = [
-    { label: lang === 'EN' ? 'Registered Startups' : 'ສະຕາດອັບທີ່ລົງທະບຽນ', value: '75+', icon: Users, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { label: lang === 'EN' ? 'Ecosystem Funding Raised' : 'ທຶນລະດົມໃນລະບົບນິເວດ', value: '$18.5M+', icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { label: lang === 'EN' ? 'Active VC Partners' : 'ຄູ່ຮ່ວມງານນັກລົງທຶນ (VC)', value: '18', icon: Target, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: lang === 'EN' ? 'Lao Tech Jobs Created' : 'ຕຳແໜ່ງງານໄອທີທີ່ສ້າງຂຶ້ນ', value: '450+', icon: TrendingUp, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+    { label: lang === 'EN' ? 'Incubated MSMEs & Startups' : 'ຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບທີ່ບົ່ມເພາະ', value: '75+', icon: Users, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+    { label: lang === 'EN' ? 'Supported Investment Pipeline' : 'ມູນຄ່າໂອກາດການລົງທຶນ', value: '$18.5M+', icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: lang === 'EN' ? 'Public & Private Partners' : 'ຄູ່ຮ່ວມງານພາກລັດ ແລະ ເອກະຊົນ', value: '18', icon: Target, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { label: lang === 'EN' ? 'Innovation Jobs Supported' : 'ຕຳແໜ່ງງານນະວັດຕະກຳທີ່ສະໜັບສະໜູນ', value: '450+', icon: TrendingUp, color: 'text-amber-400', bg: 'bg-amber-500/10' },
   ];
 
   const getBadgeColor = (cat: string) => {
@@ -72,19 +120,21 @@ export default async function Home() {
   // Fetch live news with mock fallback
   let newsItems: HomeNewsItem[] = [];
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api'}/news`, {
+    const res = await fetch(`${API_BASE}/news`, {
       cache: 'no-store',
     });
-    const data = await res.json();
+    const data = (await res.json()) as ApiResponse<ApiNewsItem>;
     if (data.success && data.data && data.data.length > 0) {
-      newsItems = data.data.slice(0, 3).map((item: any) => {
+      newsItems = data.data.slice(0, 3).map((item) => {
         const titleFallback = item.title || (item.content ? item.content.slice(0, 60) + (item.content.length > 60 ? '...' : '') : 'Untitled News');
         const summaryFallback = item.summary || (item.content ? item.content.slice(0, 150) + (item.content.length > 150 ? '...' : '') : '');
         return {
           id: item._id,
           title: titleFallback,
           category: item.category || 'News',
-          date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          date: item.date
+            ? new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : 'Latest',
           summary: summaryFallback,
           readTime: item.readTime || '3 min read',
           badgeColor: getBadgeColor(item.category || 'News'),
@@ -101,38 +151,78 @@ export default async function Home() {
     newsItems = [
       {
         id: 'news-1',
-        title: 'Lao Tech Hub Announces Digital Incubation Cohort for 2026',
+        title: 'MSIC Announces Digital Incubation Cohort for 2026',
         category: 'Program',
         date: 'Jun 15, 2026',
-        summary: 'The Ministry of Technology and Communications launches its annual acceleration initiative targeting 15 selected tech startups.',
+        summary: 'MSIC opens a government-backed incubation cohort for selected MSMEs and startups building digital products in Lao PDR.',
         readTime: '3 min read',
         badgeColor: 'text-cyan-400 bg-cyan-400/10 border-cyan-500/20',
         images: [],
-        content: 'The Ministry of Technology and Communications launches its annual acceleration initiative targeting 15 selected tech startups. This cohort focuses on digital wallets, smart logistics, and AI. Learn more at https://laostartup.gov.la or contact the incubation support center.',
+        content: 'MSIC opens a government-backed incubation cohort for selected MSMEs and startups building digital products in Lao PDR. The cohort focuses on business readiness, market access, digital tools, and investment preparation.',
       },
       {
         id: 'news-2',
-        title: 'Regional VC Syndicate Announces $5M Co-Investment for Lao FinTechs',
+        title: 'MSIC Connects MSMEs with Regional Investment Partners',
         category: 'Investment',
         date: 'Jun 08, 2026',
-        summary: 'A consortium of Southeast Asian angel investors and venture funds partners with local banks to bolster digital payment startups.',
+        summary: 'Public and private partners are working with MSIC to improve access to finance for high-potential Lao businesses.',
         readTime: '4 min read',
         badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-500/20',
         images: [],
-        content: 'A consortium of Southeast Asian angel investors and venture funds partners with local banks to bolster digital payment startups. The group expects to back at least 5 early-stage ventures this year. Apply online via https://invest.laostartup.com and submit your pitch deck.',
+        content: 'Public and private partners are working with MSIC to improve access to finance for high-potential Lao businesses. The program helps founders prepare financial reports, pitch decks, and investor meetings.',
       },
       {
         id: 'news-3',
-        title: 'Lao Tech Expo 2026 Welcomes Global Venture Capitalist Delegates',
+        title: 'Lao Startup Event Returns as an MSIC Flagship Program',
         category: 'Ecosystem',
         date: 'May 28, 2026',
-        summary: 'This year\'s flagship tech gathering connects 50+ local startup founders directly with international investors and ecosystem leaders.',
+        summary: 'The Lao Startup event is now presented as one of MSIC\'s flagship activities for founders, MSMEs, and ecosystem partners.',
         readTime: '5 min read',
         badgeColor: 'text-purple-400 bg-purple-400/10 border-purple-500/20',
         images: [],
-        content: 'This year\'s flagship tech gathering connects 50+ local startup founders directly with international investors and ecosystem leaders. For registrations, agenda timelines, and venue maps, visit the official timeline page at https://laostartup.com/events or check local media updates.',
+        content: 'The Lao Startup event is now presented as one of MSIC\'s flagship activities for founders, MSMEs, and ecosystem partners. The event includes showcases, mentoring, business matching, and policy dialogue.',
       },
     ];
+  }
+
+  let featuredStartups: HomeStartup[] = [];
+  try {
+    const res = await fetch(`${API_BASE}/startups?limit=3`, { cache: 'no-store' });
+    const data = (await res.json()) as ApiResponse<ApiStartupItem>;
+    if (data.success) {
+      featuredStartups = (data.data || []).slice(0, 3).map((item, index) => ({
+        id: item._id,
+        name: item.name,
+        category: item.category,
+        description: item.description,
+        logoUrl: item.logoUrl,
+        tractionMetrics: item.tractionMetrics,
+        logoGradient: GRADIENTS[index % GRADIENTS.length],
+      }));
+    }
+  } catch (error) {
+    console.error('Failed to fetch featured startups:', error);
+  }
+
+  let sponsors: HomeSponsor[] = [];
+  try {
+    const res = await fetch(`${API_BASE}/sponsors?placement=home`, { cache: 'no-store' });
+    const data = (await res.json()) as ApiResponse<ApiSponsorItem>;
+    if (data.success) {
+      const tierRank: Record<HomeSponsor['tier'], number> = { Diamond: 0, Gold: 1, Silver: 2 };
+      sponsors = (data.data || [])
+        .map((item) => ({
+          id: item._id,
+          name: item.name,
+          tier: item.tier,
+          logoUrl: item.logoUrl,
+          eventTitle: item.eventId?.title,
+          eventYear: item.eventId?.year,
+        }))
+        .sort((a: HomeSponsor, b: HomeSponsor) => tierRank[a.tier] - tierRank[b.tier]);
+    }
+  } catch (error) {
+    console.error('Failed to fetch sponsors:', error);
   }
 
   return (
@@ -149,7 +239,7 @@ export default async function Home() {
             className="w-full h-full object-cover opacity-60 filter brightness-90 contrast-100"
           >
             <source
-              src="/video/background-video.mp4"
+              src="/video/background-video2.mp4#t=7"
               type="video/mp4"
             />
           </video>
@@ -170,32 +260,35 @@ export default async function Home() {
 
         {/* Hero Section */}
         <section className="mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8 text-center relative z-10">
+
           <div className="inline-flex items-center space-x-2 rounded-full border border-cyan-500/30 bg-cyan-950/50 px-3 py-1 text-xs font-medium text-cyan-300 backdrop-blur mb-6 hover:bg-cyan-950/70 transition-all">
             <Award className="h-3.5 w-3.5" />
-            <span>{lang === 'EN' ? 'Lao Startup Ecosystem Official Portal' : 'ພອດທໍທາງການຂອງລະບົບນິເວດສະຕາດອັບລາວ'}</span>
+            <span>{lang === 'EN' ? 'MSME and Startup Innovation Center' : 'ສູນນະວັດຕະກຳສຳລັບ ຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບ'}</span>
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-6xl bg-gradient-to-b from-white via-slate-100 to-slate-500 bg-clip-text text-transparent">
-            {lang === 'EN' ? 'Empowering the Next Generation' : 'ສົ່ງເສີມ ແລະ ພັດທະນາຄົນຮຸ່ນໃໝ່'} <br className="hidden md:inline" />
-            {lang === 'EN' ? 'of' : 'ແຫ່ງ'} <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">{lang === 'EN' ? 'Lao Innovation' : 'ນະວັດຕະກໍາລາວ'}</span>
+            {lang === 'EN' ? 'MSIC' : 'MSIC'} <br className="hidden md:inline" />
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+              {lang === 'EN' ? 'Business Incubation Center' : 'ສູນບົ່ມເພາະທຸລະກິດ'}
+            </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 leading-relaxed">
             {lang === 'EN' 
-              ? 'Connecting local founders, tech startups, and digital builders with international venture capitals, strategic angels, and government acceleration programs.'
-              : 'ເຊື່ອມຕໍ່ຜູ້ກໍ່ຕັ້ງທ້ອງຖິ່ນ, ສະຕາດອັບດ້ານເຕັກໂນໂລຊີ, ແລະ ຜູ້ພັດທະນາດີຈີຕອນ ກັບກອງທຶນຮ່ວມລົງທຶນສາກົນ, ນັກລົງທຶນທຸລະກິດ, ແລະ ໂຄງການເລັ່ງລັດການເຕີບໂຕຂອງພາກລັດ.'}
+              ? 'MSIC is a government business incubation center for MSMEs and startups under the Ministry of Industry and Commerce, supporting founders with innovation programs, events, mentoring, and market access.'
+              : 'MSIC ຫຼື ສູນນະວັດຕະກຳສຳລັບ ຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບ ແມ່ນສູນບົ່ມເພາະທຸລະກິດຂອງລັດຖະບານ ພາຍໃຕ້ກະຊວງອຸດສາຫະກຳ ແລະ ການຄ້າ.'}
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/directory"
               className="flex items-center space-x-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-cyan-500/25 transition-all hover:from-cyan-400 hover:to-blue-500 hover:shadow-cyan-500/35 hover:-translate-y-0.5"
             >
-              <span>{lang === 'EN' ? 'Explore Startup Directory' : 'ຄົ້ນຫາລາຍຊື່ສະຕາດອັບ'}</span>
+              <span>{lang === 'EN' ? 'Explore MSME & Startup Directory' : 'ຄົ້ນຫາລາຍຊື່ ຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບ'}</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/portal/startup"
               className="rounded-lg border border-slate-700 bg-slate-900/60 px-6 py-3.5 text-sm font-bold text-slate-300 hover:bg-slate-800 hover:text-white transition-all hover:-translate-y-0.5"
             >
-              {lang === 'EN' ? 'Apply for Funding' : 'ສະໝັກຂໍທຶນສະໜັບສະໜູນ'}
+              {lang === 'EN' ? 'login' : 'ເຂົ້າສູ່ລະບົບ'}
             </Link>
           </div>
         </section>
@@ -235,62 +328,163 @@ export default async function Home() {
         subtitle={lang === 'EN' ? 'Ecosystem updates, accelerator details, and investment news.' : 'ຂ່າວສານ, ລາຍລະອຽດໂຄງການເລັ່ງລັດ, ແລະ ຂ່າວການລົງທຶນຫຼ້າສຸດ.'}
       />
 
-      {/* Featured Startups Section */}
+      {/* Featured Incubation Participants Section */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
           <div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-white">{lang === 'EN' ? 'Featured Startups' : 'ສະຕາດອັບທີ່ໂດດເດັ່ນ'}</h2>
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">{lang === 'EN' ? 'Featured MSIC Participants' : 'ຜູ້ເຂົ້າຮ່ວມ MSIC ທີ່ໂດດເດັ່ນ'}</h2>
             <p className="mt-2 text-slate-400">
               {lang === 'EN' 
-                ? 'High-growth ventures on our platform validated by our ecosystem advisors.'
-                : 'ທຸລະກິດເຕີບໂຕສູງໃນແພລດຟອມຂອງພວກເຮົາ ທີ່ໄດ້ຮັບການຢັ້ງຢືນຈາກທີ່ປຶກສາລະບົບນິເວດ.'}
+                ? 'MSMEs and startups supported through MSIC programs, mentoring, events, and partner networks.'
+                : 'ຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບທີ່ໄດ້ຮັບການສະໜັບສະໜູນຜ່ານໂຄງການ, ການໃຫ້ຄຳປຶກສາ, ກິດຈະກຳ ແລະ ເຄືອຂ່າຍຄູ່ຮ່ວມງານຂອງ MSIC.'}
             </p>
           </div>
           <Link href="/directory" className="mt-4 md:mt-0 flex items-center space-x-1.5 text-sm font-semibold text-cyan-400 hover:text-cyan-300 transition-colors">
-            <span>{lang === 'EN' ? 'View all startups' : 'ເບິ່ງສະຕາດອັບທັງໝົດ'}</span>
+            <span>{lang === 'EN' ? 'View all participants' : 'ເບິ່ງຜູ້ເຂົ້າຮ່ວມທັງໝົດ'}</span>
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {featuredStartups.map((startup) => (
-            <div
-              key={startup.id}
-              className="flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-900 bg-slate-900/20 p-6 hover:border-slate-800 hover:bg-slate-900/40 transition-all group"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-tr ${startup.logoGradient} shadow-md`}>
-                    <span className="text-xl font-bold text-white">{startup.name.charAt(0)}</span>
+        {featuredStartups.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/10 p-10 text-center text-sm text-slate-500">
+            {lang === 'EN' ? 'Startup companies will appear here after they are added and approved.' : 'ຂໍ້ມູນບໍລິສັດຈະສະແດງຢູ່ນີ້ຫຼັງຈາກເພີ່ມ ແລະ ອະນຸມັດແລ້ວ.'}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            {featuredStartups.map((startup) => (
+              <div
+                key={startup.id}
+                className="group flex min-h-[320px] flex-col overflow-hidden rounded-2xl border border-slate-900 bg-slate-900/20 p-5 transition-colors hover:border-slate-800 hover:bg-slate-900/40"
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl ${startup.logoUrl ? 'bg-white' : `bg-gradient-to-tr ${startup.logoGradient}`} shadow-lg`}>
+                    {startup.logoUrl ? (
+                      <img
+                        src={resolveAssetUrl(startup.logoUrl)}
+                        alt={`${startup.name} logo`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-black text-white">{startup.name.charAt(0)}</span>
+                    )}
                   </div>
-                  <span className="rounded-full bg-slate-800 px-2.5 py-1 text-xs font-semibold text-cyan-400">
-                    {startup.category}
-                  </span>
+                  <div className="min-w-0">
+                    <span className="inline-flex rounded-full border border-cyan-500/15 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-300">
+                      {startup.category}
+                    </span>
+                    <h3 className="mt-3 truncate text-xl font-extrabold text-white transition-colors group-hover:text-cyan-300">
+                      {startup.name}
+                    </h3>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-white group-hover:text-cyan-400 transition-colors">
-                  {startup.name}
-                </h3>
-                <p className="mt-3 text-sm text-slate-400 leading-relaxed">{startup.description}</p>
-              </div>
 
-              <div className="mt-8 pt-6 border-t border-slate-900 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">{lang === 'EN' ? 'Traction Metrics' : 'ດັດຊະນີການເຕີບໂຕ'}</span>
-                  <span className="font-semibold text-emerald-400">{startup.stats}</span>
+                <p className="mt-5 line-clamp-3 text-sm leading-6 text-slate-400">{startup.description}</p>
+
+                <div className="mt-auto space-y-4 pt-6">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-xl bg-slate-950/60 p-3">
+                      <span className="block text-slate-500">{lang === 'EN' ? 'Revenue' : 'ລາຍຮັບ'}</span>
+                      <span className="mt-1 block font-bold text-white">{money(startup.tractionMetrics?.revenue)}</span>
+                    </div>
+                    <div className="rounded-xl bg-slate-950/60 p-3">
+                      <span className="block text-slate-500">{lang === 'EN' ? 'Funding' : 'ທຶນລະດົມ'}</span>
+                      <span className="mt-1 block font-bold text-emerald-300">{money(startup.tractionMetrics?.fundingRaised)}</span>
+                    </div>
+                    <div className="rounded-xl bg-slate-950/60 p-3">
+                      <span className="block text-slate-500">{lang === 'EN' ? 'Team' : 'ທີມ'}</span>
+                      <span className="mt-1 block font-bold text-white">{startup.tractionMetrics?.teamSize || 1}</span>
+                    </div>
+                    <div className="rounded-xl bg-slate-950/60 p-3">
+                      <span className="block text-slate-500">{lang === 'EN' ? 'Customers' : 'ລູກຄ້າ'}</span>
+                      <span className="mt-1 block font-bold text-white">{Number(startup.tractionMetrics?.customers || 0).toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <Link
+                    href="/directory"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs font-bold text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                  >
+                    {lang === 'EN' ? 'View in Directory' : 'ເບິ່ງໃນລາຍຊື່'}
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-500">{lang === 'EN' ? 'Capital Goal' : 'ເປົ້າໝາຍລະດົມທຶນ'}</span>
-                  <span className="font-semibold text-white">{startup.funding}</span>
-                </div>
-                <Link
-                  href={`/directory/${startup.id}`}
-                  className="block w-full text-center mt-4 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 py-2.5 text-xs font-bold text-slate-300 hover:text-white transition-colors"
-                >
-                  {lang === 'EN' ? 'View Profile' : 'ເບິ່ງຂໍ້ມູນທຸລະກິດ'}
-                </Link>
               </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Sponsors Section */}
+      <section className="border-y border-slate-900 bg-slate-900/15">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-300">
+                <Handshake className="h-3.5 w-3.5" />
+                {lang === 'EN' ? 'Partners' : 'ຄູ່ຮ່ວມງານ'}
+              </div>
+              <h2 className="text-3xl font-extrabold tracking-tight text-white">
+                {lang === 'EN' ? 'Sponsors & Ecosystem Partners' : 'ຜູ້ສະໜັບສະໜູນ ແລະ ຄູ່ຮ່ວມງານ'}
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                {lang === 'EN'
+                  ? 'Organizations supporting MSIC programs, founder showcases, investor readiness, and startup ecosystem events.'
+                  : 'ອົງກອນທີ່ສະໜັບສະໜູນໂຄງການ MSIC, ການນຳສະເໜີຜົນງານ, ການກຽມພ້ອມນັກລົງທຶນ ແລະ ກິດຈະກຳ ecosystem.'}
+              </p>
             </div>
-          ))}
+            <Link href="/events" className="inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-400 transition-colors hover:text-cyan-300">
+              {lang === 'EN' ? 'See events' : 'ເບິ່ງກິດຈະກຳ'}
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          {sponsors.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/30 p-10 text-center text-sm text-slate-500">
+              {lang === 'EN' ? 'Sponsor logos will appear here after they are added in the admin panel.' : 'ໂລໂກ້ຜູ້ສະໜັບສະໜູນຈະສະແດງຢູ່ນີ້ຫຼັງຈາກເພີ່ມໃນໜ້າ admin.'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {sponsors.map((sponsor) => (
+                <div
+                  key={sponsor.id}
+                  className={`group flex min-h-[190px] flex-col rounded-2xl border bg-slate-950/55 p-4 transition-colors hover:bg-slate-900/70 ${
+                    sponsor.tier === 'Diamond'
+                      ? 'border-cyan-500/25'
+                      : sponsor.tier === 'Gold'
+                      ? 'border-amber-500/25'
+                      : 'border-slate-800'
+                  }`}
+                >
+                  <div className="flex aspect-[5/3] w-full items-center justify-center rounded-xl bg-white p-5 shadow-inner shadow-slate-200/70">
+                    <img
+                      src={resolveAssetUrl(sponsor.logoUrl)}
+                      alt={`${sponsor.name} logo`}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                  <div className="mt-4 flex min-w-0 flex-1 flex-col">
+                    <div className="min-w-0 text-sm font-extrabold leading-5 text-white">{sponsor.name}</div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                        sponsor.tier === 'Diamond'
+                          ? 'bg-cyan-500/10 text-cyan-300'
+                          : sponsor.tier === 'Gold'
+                          ? 'bg-amber-500/10 text-amber-300'
+                          : 'bg-slate-800 text-slate-300'
+                      }`}>
+                        <Sparkles className="h-3 w-3" />
+                        {sponsor.tier}
+                      </div>
+                      {sponsor.eventTitle && (
+                        <div className="min-w-0 flex-1 truncate text-xs text-slate-500">
+                          {sponsor.eventTitle}{sponsor.eventYear ? ` ${sponsor.eventYear}` : ''}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -302,8 +496,8 @@ export default async function Home() {
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{lang === 'EN' ? 'Are you an Investor?' : 'ທ່ານແມ່ນນັກລົງທຶນແມ່ນບໍ່?'}</h2>
             <p className="mt-4 text-slate-400">
               {lang === 'EN' 
-                ? 'Get access to verified pitch decks, download financial reports, and schedule virtual matchmaking sessions directly with startup founders.'
-                : 'ເຂົ້າເຖິງ pitch deck ທີ່ໄດ້ຮັບການຢັ້ງຢືນ, ດາວໂຫຼດບົດລາຍງານການເງິນ, ແລະ ນັດໝາຍປະຊຸມຈັບຄູ່ທຸລະກິດກັບຜູ້ກໍ່ຕັ້ງສະຕາດອັບໂດຍກົງ.'}
+                ? 'Connect with MSIC-supported MSMEs and startups through business matching, investor readiness activities, and program events.'
+                : 'ເຊື່ອມຕໍ່ກັບ ຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບທີ່ MSIC ສະໜັບສະໜູນ ຜ່ານການຈັບຄູ່ທຸລະກິດ, ກິດຈະກຳກຽມພ້ອມດ້ານການລົງທຶນ ແລະ ກິດຈະກຳໂຄງການ.'}
             </p>
             <div className="mt-6 flex flex-wrap gap-x-4 gap-y-2">
               <span className="flex items-center space-x-2 text-xs text-slate-300">
@@ -331,7 +525,7 @@ export default async function Home() {
               href="/directory"
               className="flex items-center justify-center space-x-2 rounded-lg border border-slate-700 bg-slate-900/80 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800 transition-colors"
             >
-              {lang === 'EN' ? 'Browse Startups' : 'ຄົ້ນຫາສະຕາດອັບ'}
+              {lang === 'EN' ? 'Browse Participants' : 'ຄົ້ນຫາຜູ້ເຂົ້າຮ່ວມ'}
             </Link>
           </div>
         </div>

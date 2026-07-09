@@ -142,7 +142,7 @@ export default function NewsSection({ newsItems, showAllButton, title, subtitle 
               {title || 'News & Topics'}
             </h2>
             <p className="mt-2 text-slate-400">
-              {subtitle || 'ຂ່າວສານ ແລະ ຄວາມເຄື່ອນໄຫວຫຼ້າສຸດໃນວົງການສະຕາດອັບ.'}
+              {subtitle || 'ຂ່າວສານ ແລະ ຄວາມເຄື່ອນໄຫວຫຼ້າສຸດໃນວົງການຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບ.'}
             </p>
           </div>
           {showAllButton !== false && (
