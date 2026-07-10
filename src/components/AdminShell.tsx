@@ -9,7 +9,7 @@ import {
   CheckCircle2,
   Home,
   LayoutDashboard,
-  LogIn,
+  LogOut,
   Newspaper,
   Shield,
   Sparkles,
@@ -27,6 +27,11 @@ const adminNav = [
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLogin = pathname === '/admin/login';
+
+  const handleLogout = () => {
+    localStorage.removeItem('admin_token');
+    window.location.href = '/admin/login';
+  };
 
   if (isLogin) {
     return (
@@ -91,13 +96,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         </nav>
 
         <div className="absolute inset-x-4 bottom-5 space-y-2">
-          <Link
-            href="/admin/login"
-            className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2.5 text-left text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/15 hover:text-red-100"
           >
-            <LogIn className="h-4 w-4" />
-            Admin Login
-          </Link>
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </button>
           <Link
             href="/"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-500 transition-colors hover:bg-slate-900 hover:text-white"
@@ -118,9 +124,13 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             </div>
           </div>
           <div className="flex items-center gap-2 lg:hidden">
-            <Link href="/admin/login" className="rounded-lg bg-cyan-500 px-3 py-2 text-xs font-bold text-white">
-              Login
-            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-200"
+            >
+              Logout
+            </button>
             <Link href="/" className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-300">
               Site
             </Link>

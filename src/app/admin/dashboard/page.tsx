@@ -1,12 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import {
-  TrendingUp,
   Users,
   Eye,
   Calendar,
-  Layers,
   ArrowUpRight,
   ShieldCheck,
   CheckCircle,
@@ -16,8 +14,6 @@ import {
 import {
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -51,29 +47,12 @@ const CATEGORY_DISTRIBUTION = [
 const COLORS = ['#10b981', '#3b82f6', '#f97316', '#ef4444', '#a855f7', '#06b6d4'];
 
 export default function AdminDashboard() {
-  const [mounted, setMounted] = useState(false);
-
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
     if (!token) {
       window.location.href = '/admin/login';
-      return;
     }
-    setMounted(true);
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_token');
-    window.location.href = '/admin/login';
-  };
-
-  if (!mounted) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-slate-950 text-cyan-400">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-cyan-500 border-t-transparent" />
-      </div>
-    );
-  }
 
   const statCards = [
     { label: 'Weekly MSIC Views', value: '14,700', change: '+24%', icon: Eye, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
@@ -130,12 +109,6 @@ export default function AdminDashboard() {
             >
               News Setup
             </a>
-            <button
-              onClick={handleLogout}
-              className="rounded-lg border border-red-900/30 bg-red-950/20 px-4 py-2.5 text-xs font-semibold text-red-400 hover:text-white hover:bg-red-900 transition-all active:scale-95"
-            >
-              Sign Out
-            </button>
           </div>
         </div>
 
