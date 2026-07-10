@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import { ArrowRight, TrendingUp, Users, DollarSign, Award, Target, CheckCircle2, Handshake, Sparkles } from 'lucide-react';
+import { ArrowRight, TrendingUp, Users, DollarSign, Award, Target, CheckCircle2, Handshake, Gem, Trophy, Medal } from 'lucide-react';
 import NewsSection from '@/components/NewsSection';
+import FeaturedStartups from '@/components/FeaturedStartups';
+import { MotionDiv, MotionSection } from '@/components/MotionReveal';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api';
 const API_ORIGIN = API_BASE.replace('/api', '');
@@ -11,8 +13,6 @@ const resolveAssetUrl = (url?: string) => {
   return url.startsWith('/') ? `${API_ORIGIN}${url}` : url;
 };
 
-const money = (value?: number) => `$${Number(value || 0).toLocaleString()}`;
-
 const GRADIENTS = [
   'from-emerald-400 to-teal-500',
   'from-blue-400 to-indigo-500',
@@ -20,6 +20,36 @@ const GRADIENTS = [
   'from-purple-400 to-pink-500',
   'from-cyan-400 to-sky-600',
 ];
+
+const sponsorTierStyles = {
+  Diamond: {
+    icon: Gem,
+    label: 'Diamond Sponsor',
+    border: 'border-cyan-300/35',
+    bg: 'bg-cyan-400/10',
+    text: 'text-cyan-200',
+  },
+  Gold: {
+    icon: Trophy,
+    label: 'Gold Sponsor',
+    border: 'border-amber-300/35',
+    bg: 'bg-amber-400/10',
+    text: 'text-amber-200',
+  },
+  Silver: {
+    icon: Medal,
+    label: 'Silver Sponsor',
+    border: 'border-slate-500/60',
+    bg: 'bg-slate-500/10',
+    text: 'text-slate-200',
+  },
+} satisfies Record<'Diamond' | 'Gold' | 'Silver', {
+  icon: typeof Gem;
+  label: string;
+  border: string;
+  bg: string;
+  text: string;
+}>;
 
 interface HomeStartup {
   id: string;
@@ -225,6 +255,12 @@ export default async function Home() {
     console.error('Failed to fetch sponsors:', error);
   }
 
+  const sponsorsByTier = {
+    Diamond: sponsors.filter((sponsor) => sponsor.tier === 'Diamond'),
+    Gold: sponsors.filter((sponsor) => sponsor.tier === 'Gold'),
+    Silver: sponsors.filter((sponsor) => sponsor.tier === 'Silver'),
+  };
+
   return (
     <div className="relative isolate overflow-hidden bg-slate-950 text-white">
       {/* Unified Hero & Stats container wrapped for background video coverage */}
@@ -259,7 +295,7 @@ export default async function Home() {
         </div>
 
         {/* Hero Section */}
-        <section className="mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8 text-center relative z-10">
+        <MotionSection className="mx-auto max-w-7xl px-4 pt-32 pb-24 sm:px-6 lg:px-8 text-center relative z-10" direction="down" amount={0.3}>
 
           <div className="inline-flex items-center space-x-2 rounded-full border border-cyan-500/30 bg-cyan-950/50 px-3 py-1 text-xs font-medium text-cyan-300 backdrop-blur mb-6 hover:bg-cyan-950/70 transition-all">
             <Award className="h-3.5 w-3.5" />
@@ -272,7 +308,7 @@ export default async function Home() {
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-400 leading-relaxed">
-            {lang === 'EN' 
+            {lang === 'EN'
               ? 'MSIC is a government business incubation center for MSMEs and startups under the Ministry of Industry and Commerce, supporting founders with innovation programs, events, mentoring, and market access.'
               : 'MSIC ຫຼື ສູນນະວັດຕະກຳສຳລັບ ຈຸນລະວິສາຫະກິດ ແລະ ສະຕາດອັບ ແມ່ນສູນບົ່ມເພາະທຸລະກິດຂອງລັດຖະບານ ພາຍໃຕ້ກະຊວງອຸດສາຫະກຳ ແລະ ການຄ້າ.'}
           </p>
@@ -291,18 +327,20 @@ export default async function Home() {
               {lang === 'EN' ? 'login' : 'ເຂົ້າສູ່ລະບົບ'}
             </Link>
           </div>
-        </section>
+        </MotionSection>
 
         {/* Stats Section (Cards float directly over video background for continuous flow) */}
-        <section className="py-16 relative z-10">
+        <MotionSection className="py-16 relative z-10" direction="up">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {stats.map((stat, i) => {
                 const IconComp = stat.icon;
                 return (
-                  <div
+                  <MotionDiv
                     key={i}
                     className="relative overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/50 p-6 transition-all hover:border-slate-700 hover:bg-slate-900/75 backdrop-blur-md"
+                    direction="up"
+                    delay={i * 0.06}
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-slate-400">{stat.label}</span>
@@ -313,23 +351,25 @@ export default async function Home() {
                     <div className="mt-4">
                       <span className="text-3xl font-bold tracking-tight text-white">{stat.value}</span>
                     </div>
-                  </div>
+                  </MotionDiv>
                 );
               })}
             </div>
           </div>
-        </section>
+        </MotionSection>
       </div>
 
       {/* News & Topics Section */}
-      <NewsSection 
-        newsItems={newsItems} 
-        title={lang === 'EN' ? 'News & Topics' : 'ຂ່າວສານ & ຫົວຂໍ້'}
-        subtitle={lang === 'EN' ? 'Ecosystem updates, accelerator details, and investment news.' : 'ຂ່າວສານ, ລາຍລະອຽດໂຄງການເລັ່ງລັດ, ແລະ ຂ່າວການລົງທຶນຫຼ້າສຸດ.'}
-      />
+      <MotionDiv direction="left">
+        <NewsSection
+          newsItems={newsItems}
+          title={lang === 'EN' ? 'News & Topics' : 'ຂ່າວສານ & ຫົວຂໍ້'}
+          subtitle={lang === 'EN' ? 'Ecosystem updates, accelerator details, and investment news.' : 'ຂ່າວສານ, ລາຍລະອຽດໂຄງການເລັ່ງລັດ, ແລະ ຂ່າວການລົງທຶນຫຼ້າສຸດ.'}
+        />
+      </MotionDiv>
 
       {/* Featured Incubation Participants Section */}
-      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <MotionSection className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8" direction="right">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
           <div>
             <h2 className="text-3xl font-extrabold tracking-tight text-white">{lang === 'EN' ? 'Featured MSIC Participants' : 'ຜູ້ເຂົ້າຮ່ວມ MSIC ທີ່ໂດດເດັ່ນ'}</h2>
@@ -350,77 +390,18 @@ export default async function Home() {
             {lang === 'EN' ? 'Startup companies will appear here after they are added and approved.' : 'ຂໍ້ມູນບໍລິສັດຈະສະແດງຢູ່ນີ້ຫຼັງຈາກເພີ່ມ ແລະ ອະນຸມັດແລ້ວ.'}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-            {featuredStartups.map((startup) => (
-              <div
-                key={startup.id}
-                className="group flex min-h-[320px] flex-col overflow-hidden rounded-2xl border border-slate-900 bg-slate-900/20 p-5 transition-colors hover:border-slate-800 hover:bg-slate-900/40"
-              >
-                <div className="flex items-start gap-4">
-                  <div className={`flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl ${startup.logoUrl ? 'bg-white' : `bg-gradient-to-tr ${startup.logoGradient}`} shadow-lg`}>
-                    {startup.logoUrl ? (
-                      <img
-                        src={resolveAssetUrl(startup.logoUrl)}
-                        alt={`${startup.name} logo`}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-2xl font-black text-white">{startup.name.charAt(0)}</span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="inline-flex rounded-full border border-cyan-500/15 bg-cyan-500/10 px-2.5 py-1 text-xs font-bold text-cyan-300">
-                      {startup.category}
-                    </span>
-                    <h3 className="mt-3 truncate text-xl font-extrabold text-white transition-colors group-hover:text-cyan-300">
-                      {startup.name}
-                    </h3>
-                  </div>
-                </div>
-
-                <p className="mt-5 line-clamp-3 text-sm leading-6 text-slate-400">{startup.description}</p>
-
-                <div className="mt-auto space-y-4 pt-6">
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-xl bg-slate-950/60 p-3">
-                      <span className="block text-slate-500">{lang === 'EN' ? 'Revenue' : 'ລາຍຮັບ'}</span>
-                      <span className="mt-1 block font-bold text-white">{money(startup.tractionMetrics?.revenue)}</span>
-                    </div>
-                    <div className="rounded-xl bg-slate-950/60 p-3">
-                      <span className="block text-slate-500">{lang === 'EN' ? 'Funding' : 'ທຶນລະດົມ'}</span>
-                      <span className="mt-1 block font-bold text-emerald-300">{money(startup.tractionMetrics?.fundingRaised)}</span>
-                    </div>
-                    <div className="rounded-xl bg-slate-950/60 p-3">
-                      <span className="block text-slate-500">{lang === 'EN' ? 'Team' : 'ທີມ'}</span>
-                      <span className="mt-1 block font-bold text-white">{startup.tractionMetrics?.teamSize || 1}</span>
-                    </div>
-                    <div className="rounded-xl bg-slate-950/60 p-3">
-                      <span className="block text-slate-500">{lang === 'EN' ? 'Customers' : 'ລູກຄ້າ'}</span>
-                      <span className="mt-1 block font-bold text-white">{Number(startup.tractionMetrics?.customers || 0).toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <Link
-                    href="/directory"
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2.5 text-xs font-bold text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
-                  >
-                    {lang === 'EN' ? 'View in Directory' : 'ເບິ່ງໃນລາຍຊື່'}
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+          <FeaturedStartups startups={featuredStartups} lang={lang} />
         )}
-      </section>
+      </MotionSection>
 
       {/* Sponsors Section */}
-      <section className="border-y border-slate-900 bg-slate-900/15">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <MotionSection className="border-y border-slate-900 bg-slate-900/15" direction="up">
+        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
-              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-300">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-amber-300">
                 <Handshake className="h-3.5 w-3.5" />
-                {lang === 'EN' ? 'Partners' : 'ຄູ່ຮ່ວມງານ'}
+                {lang === 'EN' ? 'Sponsors' : 'ຜູ້ສະໜັບສະໜູນ'}
               </div>
               <h2 className="text-3xl font-extrabold tracking-tight text-white">
                 {lang === 'EN' ? 'Sponsors & Ecosystem Partners' : 'ຜູ້ສະໜັບສະໜູນ ແລະ ຄູ່ຮ່ວມງານ'}
@@ -431,65 +412,91 @@ export default async function Home() {
                   : 'ອົງກອນທີ່ສະໜັບສະໜູນໂຄງການ MSIC, ການນຳສະເໜີຜົນງານ, ການກຽມພ້ອມນັກລົງທຶນ ແລະ ກິດຈະກຳ ecosystem.'}
               </p>
             </div>
-            <Link href="/events" className="inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-400 transition-colors hover:text-cyan-300">
-              {lang === 'EN' ? 'See events' : 'ເບິ່ງກິດຈະກຳ'}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              {(['Diamond', 'Gold', 'Silver'] as const).map((tier) => {
+                const tierStyle = sponsorTierStyles[tier];
+                const TierIcon = tierStyle.icon;
+                return (
+                  <div key={tier} className={`inline-flex items-center gap-2 rounded-full border ${tierStyle.border} ${tierStyle.bg} px-3 py-1.5 text-xs font-bold ${tierStyle.text}`}>
+                    <TierIcon className="h-3.5 w-3.5" />
+                    <span>{tier}</span>
+                    <span className="text-slate-500">{sponsorsByTier[tier].length}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {sponsors.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-950/30 p-10 text-center text-sm text-slate-500">
-              {lang === 'EN' ? 'Sponsor logos will appear here after they are added in the admin panel.' : 'ໂລໂກ້ຜູ້ສະໜັບສະໜູນຈະສະແດງຢູ່ນີ້ຫຼັງຈາກເພີ່ມໃນໜ້າ admin.'}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {sponsors.map((sponsor) => (
-                <div
-                  key={sponsor.id}
-                  className={`group flex min-h-[190px] flex-col rounded-2xl border bg-slate-950/55 p-4 transition-colors hover:bg-slate-900/70 ${
-                    sponsor.tier === 'Diamond'
-                      ? 'border-cyan-500/25'
-                      : sponsor.tier === 'Gold'
-                      ? 'border-amber-500/25'
-                      : 'border-slate-800'
-                  }`}
-                >
-                  <div className="flex aspect-[5/3] w-full items-center justify-center rounded-xl bg-white p-5 shadow-inner shadow-slate-200/70">
-                    <img
-                      src={resolveAssetUrl(sponsor.logoUrl)}
-                      alt={`${sponsor.name} logo`}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  </div>
-                  <div className="mt-4 flex min-w-0 flex-1 flex-col">
-                    <div className="min-w-0 text-sm font-extrabold leading-5 text-white">{sponsor.name}</div>
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      <div className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${
-                        sponsor.tier === 'Diamond'
-                          ? 'bg-cyan-500/10 text-cyan-300'
-                          : sponsor.tier === 'Gold'
-                          ? 'bg-amber-500/10 text-amber-300'
-                          : 'bg-slate-800 text-slate-300'
-                      }`}>
-                        <Sparkles className="h-3 w-3" />
-                        {sponsor.tier}
-                      </div>
-                      {sponsor.eventTitle && (
-                        <div className="min-w-0 flex-1 truncate text-xs text-slate-500">
-                          {sponsor.eventTitle}{sponsor.eventYear ? ` ${sponsor.eventYear}` : ''}
-                        </div>
-                      )}
+            <div className="grid gap-3 md:grid-cols-3">
+              {(['Diamond', 'Gold', 'Silver'] as const).map((tier) => {
+                const tierStyle = sponsorTierStyles[tier];
+                const TierIcon = tierStyle.icon;
+                return (
+                  <div key={tier} className={`flex items-center gap-3 rounded-xl border border-dashed ${tierStyle.border} bg-slate-950/35 p-4`}>
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${tierStyle.bg}`}>
+                      <TierIcon className={`h-4 w-4 ${tierStyle.text}`} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-extrabold text-white">{tierStyle.label}</h3>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {lang === 'EN'
+                          ? 'Logo slot available.'
+                          : 'ພື້ນທີ່ໂລໂກ້ຍັງວ່າງ.'}
+                      </p>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {(['Diamond', 'Gold', 'Silver'] as const).map((tier) => {
+                const tierSponsors = sponsorsByTier[tier];
+                if (tierSponsors.length === 0) return null;
+                const tierStyle = sponsorTierStyles[tier];
+                const TierIcon = tierStyle.icon;
+                return (
+                  <div key={tier}>
+                    <div className="mb-3 flex items-center gap-2">
+                      <TierIcon className={`h-4 w-4 ${tierStyle.text}`} />
+                      <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-300">{tierStyle.label}</h3>
+                    </div>
+                    <div className="grid grid-cols-3 items-center gap-5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8">
+                      {tierSponsors.map((sponsor) => (
+                        <figure
+                          key={sponsor.id}
+                          title={sponsor.name}
+                          className="mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-white p-3 ring-1 ring-white/10 transition-transform hover:-translate-y-1"
+                        >
+                          <img
+                            src={resolveAssetUrl(sponsor.logoUrl)}
+                            alt={`${sponsor.name} logo`}
+                            className="h-full w-full object-contain"
+                          />
+                        </figure>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
+
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-slate-900 pt-5">
+            <p className="text-xs font-semibold text-slate-500">
+              {lang === 'EN' ? 'Sponsor visibility extends from homepage placement to event and footer recognition.' : 'ການສະແດງຜູ້ສະໜັບສະໜູນຄອບຄຸມຕັ້ງແຕ່ໜ້າຫຼັກ, ກິດຈະກຳ ໄປຈົນເຖິງ footer.'}
+            </p>
+            <Link href="/events" className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 transition-colors hover:text-cyan-300">
+              {lang === 'EN' ? 'See sponsor events' : 'ເບິ່ງກິດຈະກຳຜູ້ສະໜັບສະໜູນ'}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
-      </section>
+      </MotionSection>
 
       {/* Call to Action Section */}
-      <section className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
+      <MotionSection className="mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8" direction="up">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-slate-950 to-cyan-950 border border-cyan-500/10 px-8 py-12 sm:px-16 sm:py-16 md:flex md:items-center md:justify-between shadow-2xl">
           <div className="absolute top-0 right-0 -z-10 aspect-[500/500] w-[20rem] rounded-full bg-cyan-500/10 blur-3xl" />
           <div className="max-w-xl">
@@ -529,7 +536,7 @@ export default async function Home() {
             </Link>
           </div>
         </div>
-      </section>
+      </MotionSection>
 
       {/* Decorative background bottom radial */}
       <div className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]">

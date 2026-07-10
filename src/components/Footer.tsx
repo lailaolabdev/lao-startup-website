@@ -3,12 +3,70 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Mail, Globe, MapPin } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8002/api';
+const API_ORIGIN = API_BASE.replace('/api', '');
+
+const resolveAssetUrl = (url?: string) => {
+  if (!url) return '';
+  return url.startsWith('/') ? `${API_ORIGIN}${url}` : url;
+};
+
+interface FooterSponsor {
+  id: string;
+  name: string;
+  tier: 'Diamond' | 'Gold' | 'Silver';
+  logoUrl: string;
+}
+
+interface ApiSponsorItem {
+  _id: string;
+  name: string;
+  tier: FooterSponsor['tier'];
+  logoUrl: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T[];
+}
 
 export default function Footer() {
   const pathname = usePathname();
   const { language: lang } = useLanguage();
+  const [sponsors, setSponsors] = useState<FooterSponsor[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSponsors() {
+      try {
+        const res = await fetch(`${API_BASE}/sponsors`);
+        const data = (await res.json()) as ApiResponse<ApiSponsorItem>;
+        if (!cancelled && data.success) {
+          const tierRank: Record<FooterSponsor['tier'], number> = { Diamond: 0, Gold: 1, Silver: 2 };
+          setSponsors((data.data || [])
+            .map((item) => ({
+              id: item._id,
+              name: item.name,
+              tier: item.tier,
+              logoUrl: item.logoUrl,
+            }))
+            .sort((a, b) => tierRank[a.tier] - tierRank[b.tier]));
+        }
+      } catch (error) {
+        console.error('Failed to fetch footer sponsors:', error);
+      }
+    }
+
+    loadSponsors();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (pathname.startsWith('/admin')) {
     return null;
@@ -107,11 +165,37 @@ export default function Footer() {
           </div>
         </div>
 
+        {sponsors.length > 0 && (
+          <div className="mt-10 border-t border-slate-900 pt-6">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-600">
+              {lang === 'EN' ? 'Sponsors' : 'ຜູ້ສະໜັບສະໜູນ'}
+            </p>
+            <div className="flex flex-nowrap items-center gap-3 overflow-x-auto pb-1">
+              {sponsors.map((sponsor) => (
+                <figure
+                  key={sponsor.id}
+                  title={sponsor.name}
+                  className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-2 ring-1 ring-white/10 transition-transform hover:-translate-y-0.5"
+                >
+                  <img
+                    src={resolveAssetUrl(sponsor.logoUrl)}
+                    alt={`${sponsor.name} logo`}
+                    className="h-full w-full object-contain"
+                  />
+                </figure>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-12 pt-8 border-t border-slate-900 flex flex-col md:flex-row items-center justify-between text-xs text-slate-600">
           <p>
             &copy; {new Date().getFullYear()} {lang === 'EN' ? 'MSIC. All rights reserved.' : 'MSIC. ສະຫງວນລິຂະສິດ.'}
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
+            <Link href="/admin/login" className="hover:text-slate-400">
+              {lang === 'EN' ? 'Admin Login' : 'ເຂົ້າສູ່ລະບົບ Admin'}
+            </Link>
             <span className="hover:text-slate-400 cursor-pointer">
               {lang === 'EN' ? 'Privacy Policy' : 'ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ'}
             </span>
